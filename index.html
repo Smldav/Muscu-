@@ -53,19 +53,20 @@ p{margin:0 0 10px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.danger{border-color:var(--danger);color:var(--danger)}
 .btn.block{width:100%}
-.btn:focus-visible,input:focus-visible,.tab:focus-visible,.check:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.tab:focus-visible,.check:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .row.split{justify-content:space-between}
 .gap{margin-top:12px}
 label{display:block;font-weight:500;font-size:14px;color:var(--muted);margin-bottom:4px}
-input[type=text],input[type=number]{
+input[type=text],input[type=number],select{
   font:inherit;width:100%;min-height:46px;padding:0 12px;border-radius:8px;
   border:1.5px solid var(--line);background:var(--bg);color:var(--ink);
 }
-input[type=text]:focus,input[type=number]:focus{border-color:var(--accent)}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--accent)}
 .exrow{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
 .exrow:first-of-type{border-top:0;margin-top:0;padding-top:0}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .setrow{display:grid;grid-template-columns:28px 1fr 18px 1fr 48px;gap:8px;align-items:center;margin-top:8px}
 .setrow .n{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:20px;color:var(--muted);text-align:center}
 .setrow .x{text-align:center;color:var(--muted)}
@@ -74,7 +75,7 @@ input[type=text]:focus,input[type=number]:focus{border-color:var(--accent)}
   color:var(--ink);font-size:22px;cursor:pointer;line-height:1;
 }
 .check.on{background:var(--ok);border-color:var(--ok);color:#fff}
-.target{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:20px;color:var(--muted)}
+.target{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:20px;color:var(--muted);white-space:nowrap}
 .chips{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:6px}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 6px;border-radius:5px;font-weight:700;font-size:13px;border:1px solid rgba(0,0,0,.25)}
 .bar{display:flex;align-items:center;height:110px;margin:12px 0 6px}
@@ -88,6 +89,13 @@ td,th{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);font-v
 th{font-weight:500;color:var(--muted);font-size:14px}
 .err{color:var(--danger);font-weight:500;margin-top:10px}
 .okmsg{color:var(--ok);font-weight:600}
+details.tech{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+details.tech summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+details.tech p{font-size:14px;margin:8px 0 0}
+.btn:disabled{opacity:.4;cursor:default}
+.exph{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.exph img{width:100%;height:auto;border-radius:6px;background:var(--bg);display:block}
+details.tech a{color:var(--accent);font-weight:600}
 .tabs{
   position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--surface);
   border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5;
@@ -113,31 +121,196 @@ th{font-weight:500;color:var(--muted);font-size:14px}
 
 <script>
 const KEY='muscu-v1';
+const VERSION='3';
 const ALL_PLATES=[25,20,15,10,5,2.5,1.25];
 const PCOL={25:'#D6282F',20:'#1F5BD6',15:'#E8C21A',10:'#1E9E4A',5:'#F2F2F2',2.5:'#26292D',1.25:'#A9AEB3'};
 const PTXT={25:'#fff',20:'#fff',15:'#222',10:'#fff',5:'#222',2.5:'#fff',1.25:'#222'};
 const PH={25:100,20:92,15:82,10:70,5:58,2.5:48,1.25:40};
+const MODES={barre:'Barre',haltere:'Haltères (charge par haltère)',machine:'Machine ou poulie',pc:'Poids du corps (lest)'};
 
-function defaults(){return {programs:[],history:[],settings:{bar:20,step:2.5,plates:ALL_PLATES.slice()}};}
+/* ---------- Programmes de départ (source : ton fichier Excel, feuille « Séances Entraînement ») ---------- */
+const INIT=[
+{name:'Push (lundi et jeudi)',exercises:[
+ {name:'Développé couché barre',sets:'4',reps:'8-10',mode:'barre',step:'2.5',
+  desc:"Allongé sur le banc, pieds au sol. Prise légèrement plus large que les épaules. Descendre la barre jusqu'à effleurer le sternum, coudes à ~75° du corps. Pousser en expirant.",
+  err:"Ne pas rebondir la barre sur la poitrine. Ne pas décoller les fesses. Ne pas verrouiller les coudes en haut.",
+  prog:"S1–2 : 4×8–10. S3–4 : 5×8–10. S5–6 lundi : 5×5 charges lourdes. Augmenter de 2,5 kg quand tu complètes toutes les reps."},
+ {name:'Développé incliné haltères',sets:'3',reps:'10-12',mode:'haltere',step:'2',
+  desc:"Banc incliné à 30–45°. Haltères en pronation, coudes légèrement fléchis en haut. Descendre jusqu'à sentir l'étirement du pec. Remonter sans verrouiller.",
+  err:"Ne pas monter trop haut l'inclinaison (>45° = deltoïdes qui prennent). Ne pas laisser les haltères s'écarter trop vers les côtés.",
+  prog:"Augmenter de 2 kg par haltère dès que tu fais 12 reps propres sur toutes les séries."},
+ {name:'Élévations latérales haltères',sets:'3',reps:'12-15',mode:'haltere',step:'1',
+  desc:"Debout, haltères le long du corps. Monter les bras sur les côtés jusqu'à hauteur des épaules, légère rotation externe (pouce vers le bas). Contrôler la descente.",
+  err:"Ne pas balancer le buste pour aider. Ne pas hausser les épaules. Ne pas monter au-dessus des épaules.",
+  prog:"Charges légères. Augmenter de 1 kg seulement quand le mouvement est parfait sur 15 reps."},
+ {name:'Développé militaire haltères',sets:'3',reps:'10-12',mode:'haltere',step:'2',
+  desc:"Assis ou debout, haltères à hauteur d'épaules, paumes vers l'avant. Pousser verticalement en évitant de pencher en arrière. Redescendre lentement.",
+  err:"Ne pas cambrer excessivement le bas du dos. Ne pas laisser les coudes partir trop loin en avant.",
+  prog:"Augmenter de 2 kg dès que tu complètes 12 reps propres sur 3 séries."},
+ {name:'Dips (lestés si possible)',sets:'3',reps:'10-12',mode:'pc',step:'2.5',
+  desc:"Bras tendus sur les barres, corps légèrement penché vers l'avant. Descendre jusqu'à ce que les coudes soient à 90°. Remonter sans verrouiller.",
+  err:"Ne pas descendre trop bas (risque épaules). Ne pas balancer le corps. Garder les jambes légèrement croisées.",
+  prog:"Démarrer au poids du corps. Ajouter 2,5–5 kg de lest dès que tu fais 12 reps faciles."},
+ {name:'Extensions triceps poulie haute',sets:'2',reps:'12-15',mode:'machine',step:'2.5',
+  desc:"Debout face à la poulie, coudes près du corps et fixes. Tirer la corde vers le bas en écartant légèrement les extrémités en bas. Contrôler la remontée.",
+  err:"Ne pas laisser les coudes s'écarter. Ne pas balancer le buste. Les coudes doivent rester immobiles.",
+  prog:"Augmenter de 2,5 kg dès que tu fais 15 reps propres sur 3 séries."}
+]},
+{name:'Pull (mardi)',exercises:[
+ {name:'Tractions',sets:'4',reps:'6-8',mode:'pc',step:'2.5',
+  desc:"Prise pronation légèrement plus large que les épaules. Partir bras tendus. Tirer jusqu'à ce que le menton dépasse la barre. Redescendre lentement et contrôlé.",
+  err:"Ne pas balancer le corps. Ne pas hausser les épaules en haut. Ne pas faire des demi-amplitudes.",
+  prog:"Si <6 reps : utiliser la machine à contrepoids. Dès que tu fais 8 reps propres : ajouter 2,5 kg de lest ou réduire le contrepoids."},
+ {name:'Rowing barre',sets:'4',reps:'8-10',mode:'barre',step:'2.5',
+  desc:"Penché à ~45°, dos plat, barre tenue en pronation. Tirer la barre vers le bas de l'abdomen en serrant les omoplates. Redescendre contrôlé.",
+  err:"Ne pas arrondir le dos. Ne pas tirer avec les bras seuls : initier avec les omoplates. Ne pas se redresser à chaque rep.",
+  prog:"Augmenter de 2,5 kg quand tu complètes 10 reps propres sur 4 séries."},
+ {name:'Tirage horizontal poulie',sets:'3',reps:'10-12',mode:'machine',step:'2.5',
+  desc:"Assis face à la poulie, dos droit. Tirer la poignée vers le bas du sternum en serrant les omoplates. Contrôler la remontée bras tendus.",
+  err:"Ne pas se pencher excessivement en arrière pour aider. Ne pas laisser les épaules partir en avant à chaque rep.",
+  prog:"Augmenter de 2,5–5 kg dès que tu fais 12 reps propres sur 3 séries."},
+ {name:'Curl barre',sets:'2',reps:'10-12',goal:'10',mode:'barre',step:'2.5',
+  desc:"Debout, prise supination légèrement plus large que les épaules. Coudes collés au corps. Fléchir jusqu'en haut sans bouger les coudes. Redescendre lentement.",
+  err:"Ne pas balancer le buste. Ne pas laisser les coudes partir en avant. Ne pas relâcher complètement en bas (garder tension).",
+  prog:"Augmenter de 2,5 kg dès que tu fais 10 reps propres sur 3 séries."},
+ {name:'Curl marteau haltères',sets:'2',reps:'12-15',mode:'haltere',step:'2',
+  desc:"Debout, prise neutre (pouce vers le haut). Fléchir un bras puis l'autre ou simultanément. Coudes fixes, contrôle en descente.",
+  err:"Ne pas tourner le poignet en cours de mouvement. Ne pas balancer le buste.",
+  prog:"Augmenter de 2 kg dès que tu fais 15 reps propres sur 3 séries."}
+]},
+{name:'Bras (mercredi)',exercises:[
+ {name:'Curl barre',sets:'4',reps:'8-10',mode:'barre',step:'2.5',
+  desc:"Debout, prise supination. Coudes collés au corps. Fléchir jusqu'en haut, redescendre lentement en 3 secondes.",
+  err:"Ne pas balancer le buste. Coudes fixes.",
+  prog:"4 séries. Augmenter de 2,5 kg quand toutes les reps sont propres."},
+ {name:'Curl marteau haltères',sets:'3',reps:'10-12',mode:'haltere',step:'2',
+  desc:"Prise neutre, alterner les bras. Focus sur la contraction en haut.",
+  err:"Ne pas tourner le poignet. Ne pas balancer.",
+  prog:"Augmenter de 2 kg dès que 12 reps propres."},
+ {name:'Curl incliné haltères',sets:'3',reps:'12-15',mode:'haltere',step:'',
+  desc:"Assis sur banc incliné, bras pendants derrière le corps. Fléchir lentement. C'est un exercice d'étirement : la descente est clé.",
+  err:"Ne pas trop charger. Ne pas accélérer la descente. Garder les épaules plaquées contre le banc.",
+  prog:"Charges légères. Priorité au ressenti sur l'étirement."},
+ {name:'Dips prise serrée (triceps)',sets:'4',reps:'8-10',mode:'pc',step:'2.5',
+  desc:"Corps vertical (droit), prise serrée. Descendre à 90° de flexion du coude. Pousser en expirant.",
+  err:"Ne pas pencher le buste (active plus les pecs que les triceps). Coudes près du corps.",
+  prog:"4 séries. Ajouter du lest dès que 10 reps faciles."},
+ {name:'Extensions triceps poulie haute',sets:'3',reps:'12-15',mode:'machine',step:'2.5',
+  desc:"Coudes fixes près du corps. Tirer vers le bas, écarter la corde en bas de mouvement pour maximiser la contraction.",
+  err:"Coudes qui s'écartent. Buste qui penche pour aider.",
+  prog:"Augmenter de 2,5 kg dès que 15 reps propres."},
+ {name:'Kickback haltères',sets:'3',reps:'12-15',mode:'haltere',step:'',
+  desc:"Penché, bras parallèle au sol. Étendre l'avant-bras vers l'arrière en maintenant le coude fixe. Tenir 1 sec en haut.",
+  err:"Ne pas balancer l'avant-bras. Ne pas descendre trop bas (perte de tension).",
+  prog:"Charges légères. Finition : reps lentes et contrôlées."}
+]},
+{name:'Jambes (vendredi)',exercises:[
+ {name:'Squat barre',sets:'4',reps:'8-10',mode:'barre',step:'2.5',
+  desc:"Barre sur les trapèzes (pas la nuque). Descendre jusqu'à cuisses parallèles au sol. Genoux dans l'axe des pieds. Dos gainé, regard devant. Pousser sur les talons.",
+  err:"Genoux qui rentrent vers l'intérieur. Dos qui s'arrondit. Talons qui décollent. Descente pas assez profonde.",
+  prog:"Commencer à la barre à vide (20 kg) pour valider la technique. Puis +2,5–5 kg à chaque séance si technique ok."},
+ {name:'Presse à cuisses',sets:'4',reps:'10-12',mode:'machine',step:'5',
+  desc:"Pieds à largeur de bassin sur la plateforme. Descendre jusqu'à 90° de flexion. Pousser sans verrouiller les genoux en haut.",
+  err:"Genoux qui rentrent. Bas du dos qui décolle du siège. Verrouillage des genoux (mauvais pour les articulations).",
+  prog:"Augmenter de 5 kg dès que 12 reps propres sur toutes les séries."},
+ {name:'Soulevé de terre roumain (RDL)',sets:'3',reps:'10-12',mode:'barre',step:'2.5',
+  desc:"Jambes quasi tendues (~15° flexion). Pousser les hanches vers l'arrière en descendant la barre le long des jambes. Dos plat, sensation d'étirement dans les ischios. Remonter en contractant les fessiers.",
+  err:"Fléchir les genoux comme un squat. Arrondir le dos. Descendre trop bas (perte de tension).",
+  prog:"Augmenter de 2,5 kg dès que 12 reps propres avec bonne technique. Prioriser la technique sur la charge."},
+ {name:'Fentes marchées haltères (reps par jambe)',sets:'3',reps:'10',mode:'haltere',step:'1',
+  desc:"Grand pas en avant, genou arrière descend vers le sol. Genou avant à 90°, pas plus loin que la pointe du pied. Alterner jambe droite/gauche en avançant.",
+  err:"Genou avant qui dépasse la pointe du pied. Buste qui penche en avant. Pas trop court.",
+  prog:"Augmenter de 1 kg par haltère dès que 10 reps propres par jambe sur 3 séries."},
+ {name:'Leg curl allongé',sets:'3',reps:'12-15',mode:'machine',step:'2.5',
+  desc:"Allongé face vers le bas sur la machine. Talon sous le coussin. Fléchir les genoux pour amener les talons vers les fessiers. Contrôler la descente.",
+  err:"Décoller les hanches du banc. Faire des demi-amplitudes. Se relâcher en descente.",
+  prog:"Augmenter de 2,5–5 kg dès que 15 reps propres."},
+ {name:'Extensions mollets',sets:'4',reps:'15',mode:'machine',step:'5',
+  desc:"Pieds sur le repose-pieds, talons dans le vide. Monter sur la pointe des pieds, tenir 1 sec, redescendre lentement. Amplitude maximale.",
+  err:"Rebondir en bas. Amplitude partielle. Fléchir les genoux (assis) ou les hanches (debout).",
+  prog:"Augmenter de 5 kg dès que 15 reps propres sur 4 séries."}
+]}
+];
+
+/* ---------- Images d'exemple (free-exercise-db, domaine public) ---------- */
+const IMG_BASE='https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+/* Identifiants candidats par exercice : l'app essaie dans l'ordre et affiche le premier qui charge. */
+const IMGS={
+ 'Développé couché barre':['Barbell_Bench_Press_-_Medium_Grip'],
+ 'Développé incliné haltères':['Incline_Dumbbell_Press'],
+ 'Élévations latérales haltères':['Side_Lateral_Raise'],
+ 'Développé militaire haltères':['Dumbbell_Shoulder_Press','Standing_Dumbbell_Press','Seated_Dumbbell_Press'],
+ 'Dips (lestés si possible)':['Dips_-_Triceps_Version','Dips_-_Chest_Version'],
+ 'Extensions triceps poulie haute':['Triceps_Pushdown_-_Rope_Attachment','Triceps_Pushdown'],
+ 'Tractions':['Pullups','Wide-Grip_Rear_Pull-Up'],
+ 'Rowing barre':['Bent_Over_Barbell_Row'],
+ 'Tirage horizontal poulie':['Seated_Cable_Rows'],
+ 'Curl barre':['Barbell_Curl'],
+ 'Curl marteau haltères':['Hammer_Curls'],
+ 'Curl incliné haltères':['Incline_Dumbbell_Curl','Alternate_Incline_Dumbbell_Curl'],
+ 'Dips prise serrée (triceps)':['Dips_-_Triceps_Version'],
+ 'Kickback haltères':['Tricep_Dumbbell_Kickback'],
+ 'Squat barre':['Barbell_Full_Squat','Barbell_Squat'],
+ 'Presse à cuisses':['Leg_Press'],
+ 'Soulevé de terre roumain (RDL)':['Romanian_Deadlift'],
+ 'Fentes marchées haltères (reps par jambe)':['Dumbbell_Lunges','Bodyweight_Walking_Lunge','Barbell_Walking_Lunge'],
+ 'Leg curl allongé':['Lying_Leg_Curls'],
+ 'Extensions mollets':['Standing_Calf_Raises','Seated_Calf_Raise']
+};
+const imgOK={};
+function loadExample(i){
+  if(!session) return;
+  const box=document.querySelector('.eximg[data-i="'+i+'"]');
+  if(!box) return;
+  const it=session.items[i], ids=it.imgs||[], key=ids.join('|');
+  const vid='https://www.youtube.com/results?search_query='+encodeURIComponent(it.name+' technique musculation');
+  const show=id=>{
+    if(!box.isConnected) return;
+    box.innerHTML = id
+      ? `<div class="exph"><img alt="${esc(it.name)}, position de départ" src="${IMG_BASE}${id}/0.jpg"><img alt="${esc(it.name)}, position d'arrivée" src="${IMG_BASE}${id}/1.jpg" onerror="this.remove()"></div><p class="muted small">Exemple : ${esc(id.replace(/_/g,' '))}. Images : free-exercise-db (domaine public).</p>`
+      : `<p class="muted small">Image indisponible (hors connexion ou introuvable).</p>`;
+  };
+  if(!ids.length){box.innerHTML='<p class="muted small">Pas d\'image pour cet exercice.</p>';return;}
+  if(key in imgOK){show(imgOK[key]);return;}
+  box.innerHTML='<p class="muted small">Chargement de l\'image…</p>';
+  let k=0;
+  const next=()=>{
+    if(k>=ids.length){imgOK[key]=null;show(null);return;}
+    const id=ids[k++], im=new Image();
+    im.onload=()=>{imgOK[key]=id;show(id);};
+    im.onerror=next;
+    im.src=IMG_BASE+id+'/0.jpg';
+  };
+  next();
+}
+
+/* ---------- Données ---------- */
+function defaults(){return {programs:[],history:[],seeded:false,settings:{bar:20,step:2.5,plates:ALL_PLATES.slice()}};}
 function load(){
   try{
     const r=localStorage.getItem(KEY);
     if(r){
       const d=JSON.parse(r), df=defaults();
-      return {programs:d.programs||[],history:d.history||[],settings:Object.assign(df.settings,d.settings||{})};
+      return {programs:d.programs||[],history:d.history||[],seeded:!!d.seeded,settings:Object.assign(df.settings,d.settings||{})};
     }
   }catch(e){}
   return defaults();
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const uid=()=>Math.random().toString(36).slice(2,9);
+function seed(){
+  S.programs=INIT.map(p=>({id:uid(),name:p.name,exercises:p.exercises.map(e=>Object.assign({id:uid(),weight:''},e))}));
+  S.seeded=true;save();
+}
 
 let S=load();
+if(!S.seeded && S.programs.length===0) seed();
 let tab='seances', editing=null, session=null, summary=null, confirmHist=null;
 
-const uid=()=>Math.random().toString(36).slice(2,9);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:0;};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>{const n=parseFloat(String(v==null?'':v).replace(',','.'));return isFinite(n)?n:0;};
 const fmt=n=>(Math.round(n*100)/100).toString().replace('.',',');
+const repsMax=s=>{const m=String(s==null?'':s).match(/\d+/g);return m?Math.max(...m.map(Number)):1;};
 
 /* ---------- Calculs ---------- */
 function platesFor(target){
@@ -162,6 +335,12 @@ function barVisual(list){
   const pl=list.slice().map(p=>`<span class="pl" style="height:${PH[p]}%;background:${PCOL[p]}"></span>`).join('');
   return `<div class="bar" aria-hidden="true"><span class="end"></span>${pl}<span class="sleeve"></span></div>`;
 }
+function weightText(mode,w){
+  const n=num(w);
+  if(mode==='pc') return n>0?'lest '+fmt(n)+' kg':'poids du corps';
+  if(n<=0) return 'charge à définir';
+  return fmt(n)+' kg'+(mode==='haltere'?' par haltère':'');
+}
 
 /* ---------- Vues : séances ---------- */
 function viewPrograms(){
@@ -171,7 +350,7 @@ function viewPrograms(){
   }
   for(const p of S.programs){
     h+=`<div class="card"><h2>${esc(p.name)}</h2>`;
-    h+=p.exercises.map(e=>`<div class="row split small"><span>${esc(e.name)}</span><span class="muted">${esc(e.sets)} × ${esc(e.reps)} à ${fmt(num(e.weight))} kg</span></div>`).join('');
+    h+=p.exercises.map(e=>`<div class="row split small" style="margin-bottom:4px"><span>${esc(e.name)}</span><span class="muted">${esc(e.sets)} × ${esc(e.reps)}, ${esc(weightText(e.mode,e.weight))}</span></div>`).join('');
     h+=`<div class="row gap"><button class="btn primary" data-action="start" data-id="${p.id}">Démarrer</button><button class="btn" data-action="edit" data-id="${p.id}">Modifier</button></div></div>`;
   }
   h+='<button class="btn block" data-action="new">Nouveau programme</button>';
@@ -184,13 +363,18 @@ function viewEditor(){
   h+='</div>';
   h+='<div class="card"><h2>Exercices</h2>';
   d.exercises.forEach((e,i)=>{
+    const mode=e.mode||'machine';
     h+=`<div class="exrow"><label>Exercice</label><input type="text" data-ex="${i}" data-f="name" value="${esc(e.name)}" autocomplete="off">
     <div class="grid3">
       <div><label>Séries</label><input type="number" inputmode="numeric" data-ex="${i}" data-f="sets" value="${esc(e.sets)}"></div>
-      <div><label>Reps</label><input type="number" inputmode="numeric" data-ex="${i}" data-f="reps" value="${esc(e.reps)}"></div>
+      <div><label>Reps</label><input type="text" data-ex="${i}" data-f="reps" value="${esc(e.reps)}" placeholder="8-10"></div>
       <div><label>Charge (kg)</label><input type="number" inputmode="decimal" step="any" data-ex="${i}" data-f="weight" value="${esc(e.weight)}"></div>
     </div>
-    <div class="row gap"><button class="btn danger" data-action="rmex" data-i="${i}">Retirer</button></div></div>`;
+    <div class="grid2">
+      <div><label>Type</label><select data-ex="${i}" data-f="mode">${Object.keys(MODES).map(k=>`<option value="${k}" ${k===mode?'selected':''}>${esc(MODES[k])}</option>`).join('')}</select></div>
+      <div><label>Pas de progression (kg)</label><input type="number" inputmode="decimal" step="any" data-ex="${i}" data-f="step" value="${esc(e.step)}" placeholder="aucun"></div>
+    </div>
+    <div class="row gap"><button class="btn" data-action="upex" data-i="${i}" ${i===0?'disabled':''}>Monter</button><button class="btn" data-action="downex" data-i="${i}" ${i===d.exercises.length-1?'disabled':''}>Descendre</button><button class="btn danger" data-action="rmex" data-i="${i}">Retirer</button></div></div>`;
   });
   h+='<div class="gap"><button class="btn block" data-action="addex">Ajouter un exercice</button></div></div>';
   if(editing.error) h+=`<p class="err">${esc(editing.error)}</p>`;
@@ -199,23 +383,66 @@ function viewEditor(){
   h+='</div>';
   return h;
 }
+function exampleHtml(it,i){
+  const vid='https://www.youtube.com/results?search_query='+encodeURIComponent(it.name+' technique musculation');
+  return `<details class="tech" data-key="t-${i}" ${session.open.has('t-'+i)?'open':''}><summary>Exemple et technique</summary>
+    <div class="eximg" data-i="${i}"></div>
+    ${it.desc?`<p><strong>Mouvement.</strong> ${esc(it.desc)}</p>`:''}
+    ${it.err?`<p><strong>Erreurs courantes.</strong> ${esc(it.err)}</p>`:''}
+    ${it.prog?`<p><strong>Progression prévue.</strong> ${esc(it.prog)}</p>`:''}
+    <p><a href="${vid}" target="_blank" rel="noopener">Voir des vidéos de cet exercice</a></p></details>`;
+}
+function optionsHtml(it,i){
+  const n=session.items.length;
+  return `<details class="tech" data-key="o-${i}" ${session.open.has('o-'+i)?'open':''}><summary>Modifier cet exercice</summary>
+    <div class="gap"><label>Reps visées</label><input type="text" data-opt="reps" data-i="${i}" value="${esc(it.repsLabel)}"></div>
+    <div class="row gap">
+      <button class="btn" data-action="mvitem" data-i="${i}" data-d="-1" ${i===0?'disabled':''}>Monter</button>
+      <button class="btn" data-action="mvitem" data-i="${i}" data-d="1" ${i===n-1?'disabled':''}>Descendre</button>
+    </div>
+    <div class="row gap">
+      <button class="btn" data-action="rmset" data-i="${i}" ${it.sets.length<=1?'disabled':''}>Retirer une série</button>
+      <button class="btn danger" data-action="rmitem" data-i="${i}">${session.confirmRm===i?'Confirmer le retrait':'Retirer l\'exercice'}</button>
+    </div></details>`;
+}
 function viewSession(){
   let h=`<h1>${esc(session.name)}</h1>`;
   session.items.forEach((it,i)=>{
-    h+=`<div class="card"><div class="row split"><h2 style="margin:0">${esc(it.name)}</h2><span class="target">${esc(it.targetSets)} × ${esc(it.targetReps)}</span></div>`;
+    h+=`<div class="card"><div class="row split"><h2 style="margin:0">${esc(it.name)}</h2><span class="target">${esc(it.targetSets)} × ${esc(it.repsLabel)}</span></div>`;
     h+=`<div class="chips" id="pl-${i}"></div>`;
     it.sets.forEach((s,j)=>{
       h+=`<div class="setrow"><span class="n">${j+1}</span>
-        <input type="number" inputmode="decimal" step="any" aria-label="Charge série ${j+1}" data-i="${i}" data-s="${j}" data-f="w" value="${esc(s.w)}">
+        <input type="number" inputmode="decimal" step="any" placeholder="${it.mode==='pc'?'0':'kg'}" aria-label="Charge série ${j+1}" data-i="${i}" data-s="${j}" data-f="w" value="${esc(s.w)}">
         <span class="x">×</span>
-        <input type="number" inputmode="numeric" aria-label="Répétitions série ${j+1}" data-i="${i}" data-s="${j}" data-f="r" value="${esc(s.r)}">
+        <input type="number" inputmode="numeric" placeholder="${esc(it.repsLabel)}" aria-label="Répétitions série ${j+1}" data-i="${i}" data-s="${j}" data-f="r" value="${esc(s.r)}">
         <button class="check ${s.done?'on':''}" data-action="toggle" data-i="${i}" data-s="${j}" aria-pressed="${s.done}" aria-label="Série ${j+1} faite">✓</button></div>`;
     });
-    h+=`<div class="row gap"><button class="btn" data-action="addset" data-i="${i}">Ajouter une série</button></div></div>`;
+    h+=`<div class="row gap"><button class="btn" data-action="addset" data-i="${i}">Ajouter une série</button></div>`;
+    h+=exampleHtml(it,i)+optionsHtml(it,i)+'</div>';
   });
+  if(session.adding){
+    const a=session.adding;
+    h+=`<div class="card"><h2>Ajouter un exercice</h2>
+      <label for="add-name">Nom</label><input type="text" id="add-name" data-add="name" value="${esc(a.name)}" autocomplete="off">
+      <div class="grid2"><div><label>Séries</label><input type="number" inputmode="numeric" data-add="sets" value="${esc(a.sets)}"></div>
+      <div><label>Reps</label><input type="text" data-add="reps" value="${esc(a.reps)}" placeholder="8-10"></div></div>
+      <div class="gap"><label>Type</label><select data-add="mode">${Object.keys(MODES).map(k=>`<option value="${k}" ${k===a.mode?'selected':''}>${esc(MODES[k])}</option>`).join('')}</select></div>
+      ${a.error?`<p class="err">${esc(a.error)}</p>`:''}
+      <div class="row gap"><button class="btn primary" data-action="doadd">Ajouter</button><button class="btn" data-action="canceladd">Annuler</button></div></div>`;
+  } else {
+    h+='<div style="margin-bottom:14px"><button class="btn block" data-action="showadd">Ajouter un exercice à la séance</button></div>';
+  }
+  h+='<div class="card"><p class="small muted">Les changements (ordre, exercices ajoutés ou retirés, séries) ne valent que pour cette séance, sauf si tu les gardes dans le programme.</p>';
+  h+='<button class="btn block" data-action="keepstruct">Garder ces changements dans le programme</button>';
+  if(session.info) h+=`<p class="okmsg gap">${esc(session.info)}</p>`;
+  h+='</div>';
   if(session.error) h+=`<p class="err">${esc(session.error)}</p>`;
   h+='<div class="row"><button class="btn primary" data-action="finish">Terminer la séance</button><button class="btn" data-action="abort">Abandonner</button></div>';
   return h;
+}
+function sumLabel(it,w){
+  if(it.mode==='pc') return w>0?fmt(w)+' kg de lest':'poids du corps';
+  return fmt(w)+' kg'+(it.mode==='haltere'?' par haltère':'');
 }
 function viewSummary(){
   let h='<h1>Séance enregistrée</h1>';
@@ -223,14 +450,16 @@ function viewSummary(){
   for(const it of summary.items){
     h+=`<div class="card"><h2>${esc(it.name)}</h2>`;
     if(it.ok){
-      h+=`<p>Toutes les séries validées à ${fmt(it.from)} kg avec les reps visées.</p><p><strong>Suggestion : ${fmt(it.to)} kg</strong> à la prochaine séance.</p>`;
-      h+= it.applied ? '<p class="okmsg">Appliqué au programme.</p>' : `<button class="btn primary" data-action="apply" data-ex="${it.exId}">Appliquer au programme</button>`;
+      h+=`<p>Toutes les séries validées (${esc(it.sets)} × ${esc(it.reps)}) : ${esc(sumLabel(it,it.from))}.</p><p><strong>Suggestion : ${esc(sumLabel(it,it.to))}</strong> à la prochaine séance.</p>`;
+      h+= it.applied ? '<p class="okmsg">Appliqué au programme.</p>' : (it.exId ? `<button class="btn primary" data-action="apply" data-ex="${it.exId}">Appliquer au programme</button>` : '<p class="muted small">Exercice ajouté pendant la séance, non lié au programme.</p>');
+    } else if(it.hasStep){
+      h+=`<p>Objectif pas atteint sur toutes les séries : garde ${esc(sumLabel(it,it.from))} et vise ${esc(it.goal)} reps sur chaque série.</p>`;
     } else {
-      h+=`<p>Pas toutes les séries validées avec les reps visées : garde ${fmt(it.from)} kg et vise les reps sur chaque série.</p>`;
+      h+='<p>Pas de pas de progression défini pour cet exercice. Tu peux en ajouter un dans « Modifier » du programme.</p>';
     }
     h+='</div>';
   }
-  h+='<p class="muted small">Règle utilisée (hypothèse simple, à ajuster à ton ressenti) : toutes les séries prévues faites, avec au moins les reps visées, donne la charge + le pas défini dans Charges.</p>';
+  h+='<p class="muted small">Règle utilisée (simplification) : toutes les séries prévues faites, à la même charge, avec le nombre de reps visé atteint, donne la charge + le pas de l\'exercice. Les pas viennent de ton Excel. Le nombre de reps visé est le haut de la fourchette, sauf mention contraire.</p>';
   h+='<button class="btn block" data-action="closesum">Fermer</button>';
   return h;
 }
@@ -240,7 +469,7 @@ function viewTools(){
   const st=S.settings;
   return `<h1>Charges</h1>
   <div class="card"><h2>Charge maximale estimée</h2>
-    <div class="grid3" style="grid-template-columns:1fr 1fr">
+    <div class="grid2">
       <div><label for="m-w">Charge (kg)</label><input type="number" id="m-w" inputmode="decimal" step="any" data-tool="1"></div>
       <div><label for="m-r">Répétitions</label><input type="number" id="m-r" inputmode="numeric" data-tool="1"></div>
     </div>
@@ -259,13 +488,15 @@ function viewTools(){
     <div id="c-out"></div>
   </div>
   <div class="card"><h2>Réglages</h2>
-    <div class="grid3" style="grid-template-columns:1fr 1fr">
+    <div class="grid2">
       <div><label for="s-bar">Poids de la barre (kg)</label><input type="number" id="s-bar" inputmode="decimal" step="any" data-set="bar" value="${st.bar}"></div>
-      <div><label for="s-step">Pas de progression (kg)</label><input type="number" id="s-step" inputmode="decimal" step="any" data-set="step" value="${st.step}"></div>
+      <div><label for="s-step">Pas par défaut (outil Progression)</label><input type="number" id="s-step" inputmode="decimal" step="any" data-set="step" value="${st.step}"></div>
     </div>
     <label style="margin-top:12px">Disques disponibles (kg, par côté)</label>
     <div class="plates-set">${ALL_PLATES.map(p=>`<label><input type="checkbox" data-plate="${p}" ${st.plates.includes(p)?'checked':''}>${fmt(p)}</label>`).join('')}</div>
-    <p class="muted small gap">Valeurs par défaut : barre de 20 kg, pas de 2,5 kg, disques standard. À corriger selon ta salle.</p>
+    <p class="muted small gap">Valeurs par défaut : barre de 20 kg, disques standard. À corriger selon ta salle. Les pas de progression des exercices se règlent dans chaque programme.</p>
+    <p class="muted small">Images d'exemple : base libre free-exercise-db (domaine public), chargées depuis internet.</p>
+    <p class="muted small">Version ${VERSION}</p>
   </div>`;
 }
 function calcMax(){
@@ -323,8 +554,15 @@ function viewHistory(){
 function updatePlateLine(i){
   const el=document.getElementById('pl-'+i);
   if(!el||!session) return;
-  const w=num(session.items[i].sets[0].w), r=platesFor(w);
-  el.innerHTML = w>0 && !r.error ? `<span class="muted small">Par côté :</span>${chips(r.plates)}` : '';
+  const it=session.items[i];
+  if(it.mode==='barre'){
+    const w=num(it.sets[0].w), r=platesFor(w);
+    el.innerHTML = w>0&&!r.error
+      ? `<span class="muted small">Par côté :</span>${chips(r.plates)}`
+      : '<span class="muted small">Saisis la charge totale, barre comprise.</span>';
+  } else if(it.mode==='haltere') el.innerHTML='<span class="muted small">Charge par haltère (kg)</span>';
+  else if(it.mode==='pc') el.innerHTML='<span class="muted small">Lest en kg (0 = poids du corps)</span>';
+  else el.innerHTML='<span class="muted small">Charge (kg)</span>';
 }
 function render(scroll){
   document.querySelectorAll('.tab').forEach(b=>{
@@ -334,28 +572,35 @@ function render(scroll){
   if(tab==='seances') app.innerHTML = summary?viewSummary():session?viewSession():editing?viewEditor():viewPrograms();
   else if(tab==='outils') app.innerHTML=viewTools();
   else app.innerHTML=viewHistory();
-  if(tab==='seances'&&session&&!summary) session.items.forEach((_,i)=>updatePlateLine(i));
+  if(tab==='seances'&&session&&!summary) session.items.forEach((_,i)=>{updatePlateLine(i);if(session.open.has('t-'+i)) loadExample(i);});
   if(scroll) window.scrollTo(0,0);
 }
 
 /* ---------- Actions ---------- */
-function blankEx(){return {id:uid(),name:'',sets:'3',reps:'8',weight:''};}
+function blankEx(){return {id:uid(),name:'',sets:'3',reps:'10',weight:'',mode:'machine',step:String(S.settings.step)};}
 function startSession(p){
-  session={programId:p.id,name:p.name,error:'',items:p.exercises.map(e=>{
+  session={programId:p.id,name:p.name,error:'',open:new Set(),adding:null,info:'',confirmRm:null,items:p.exercises.map(e=>{
     const n=Math.max(1,Math.round(num(e.sets))||1);
-    return {exId:e.id,name:e.name,targetSets:n,targetReps:Math.round(num(e.reps))||1,
-      sets:Array.from({length:n},()=>({w:String(e.weight===''?'':e.weight),r:String(e.reps),done:false}))};
+    return {exId:e.id,name:e.name,mode:e.mode||'machine',step:num(e.step),targetSets:n,repsLabel:String(e.reps),
+      goal:Math.round(num(e.goal))||repsMax(e.reps),desc:e.desc||'',err:e.err||'',prog:e.prog||'',imgs:e.imgs||IMGS[e.name]||[],
+      sets:Array.from({length:n},()=>({w:e.weight==null?'':String(e.weight),r:'',done:false}))};
   })};
 }
 function finishSession(){
   const entries=[],sumItems=[];
+  const prog=S.programs.find(x=>x.id===session.programId);
   for(const it of session.items){
     const done=it.sets.filter(s=>s.done);
     if(!done.length) continue;
     entries.push({name:it.name,sets:done.map(s=>({w:num(s.w),r:Math.round(num(s.r))}))});
-    const w=Math.min(...done.map(s=>num(s.w)));
-    const ok=done.length>=it.targetSets && done.every(s=>Math.round(num(s.r))>=it.targetReps) && w>0;
-    sumItems.push({exId:it.exId,name:it.name,from:w,to:w+S.settings.step,ok,applied:false});
+    const w0=num(done[0].w), wMin=Math.min(...done.map(s=>num(s.w)));
+    const sameW=done.every(s=>num(s.w)===w0);
+    const allDone=done.length>=it.targetSets;
+    const allReps=done.every(s=>Math.round(num(s.r))>=it.goal);
+    const ok=it.step>0&&allDone&&allReps&&sameW&&(it.mode==='pc'||wMin>0);
+    sumItems.push({exId:it.exId,name:it.name,mode:it.mode,from:wMin,to:wMin+it.step,ok,hasStep:it.step>0,applied:false,reps:it.repsLabel,sets:it.targetSets,goal:it.goal});
+    const ex=prog&&prog.exercises.find(x=>x.id===it.exId);
+    if(ex) ex.weight=String(num(done[done.length-1].w));
   }
   if(!entries.length){session.error='Valide au moins une série avant de terminer.';return false;}
   S.history.unshift({id:uid(),date:new Date().toISOString(),programName:session.name,programId:session.programId,entries});
@@ -395,10 +640,62 @@ document.addEventListener('click',e=>{
   }
   if(a==='start'){startSession(S.programs.find(x=>x.id===b.dataset.id));render(true);return;}
   if(a==='abort'){session=null;render(true);return;}
-  if(a==='toggle'){const s=session.items[+b.dataset.i].sets[+b.dataset.s];s.done=!s.done;render();return;}
+  if(a==='toggle'){
+    const it=session.items[+b.dataset.i],s=it.sets[+b.dataset.s];
+    if(!s.done){
+      if(num(s.r)<=0){session.error='Saisis les répétitions avant de valider la série.';render();return;}
+      if(it.mode!=='pc'&&String(s.w).trim()===''){session.error='Saisis la charge avant de valider la série.';render();return;}
+    }
+    session.error='';s.done=!s.done;render();return;
+  }
   if(a==='addset'){
     const it=session.items[+b.dataset.i],last=it.sets[it.sets.length-1];
-    it.sets.push({w:last.w,r:last.r,done:false});render();return;
+    it.sets.push({w:last.w,r:'',done:false});render();return;
+  }
+  if(a==='upex'||a==='downex'){
+    const i=+b.dataset.i,j=a==='upex'?i-1:i+1,arr=editing.draft.exercises;
+    if(j>=0&&j<arr.length){const t=arr[i];arr[i]=arr[j];arr[j]=t;}
+    render();return;
+  }
+  if(a==='mvitem'){
+    const i=+b.dataset.i,j=i+(+b.dataset.d),arr=session.items;
+    if(j>=0&&j<arr.length){const t=arr[i];arr[i]=arr[j];arr[j]=t;
+      const o=session.open,fix=k=>k;
+      const keys=[...o];o.clear();
+      keys.forEach(k=>{const p=k.slice(0,2),n=+k.slice(2);o.add(p+(n===i?j:n===j?i:n));});}
+    render();return;
+  }
+  if(a==='rmset'){
+    const it=session.items[+b.dataset.i];
+    if(it.sets.length>1){it.sets.pop();it.targetSets=Math.min(it.targetSets,it.sets.length);}
+    render();return;
+  }
+  if(a==='rmitem'){
+    const i=+b.dataset.i;
+    if(session.confirmRm!==i){session.confirmRm=i;render();return;}
+    session.items.splice(i,1);session.confirmRm=null;session.open.clear();render();return;
+  }
+  if(a==='showadd'){session.adding={name:'',sets:'3',reps:'10',mode:'machine',error:''};render();return;}
+  if(a==='canceladd'){session.adding=null;render();return;}
+  if(a==='doadd'){
+    const ad=session.adding;
+    if(!ad.name.trim()){ad.error="Donne un nom à l'exercice.";render();return;}
+    const nm=ad.name.trim(),n=Math.max(1,Math.round(num(ad.sets))||3),rp=ad.reps.trim()||'10';
+    session.items.push({exId:null,name:nm,mode:ad.mode,step:S.settings.step,targetSets:n,repsLabel:rp,goal:repsMax(rp),
+      desc:'',err:'',prog:'',imgs:IMGS[nm]||[],sets:Array.from({length:n},()=>({w:'',r:'',done:false}))});
+    session.adding=null;render();return;
+  }
+  if(a==='keepstruct'){
+    const prog=S.programs.find(x=>x.id===session.programId);
+    if(!prog){session.info='Programme introuvable.';render();return;}
+    const old=new Map(prog.exercises.map(x=>[x.id,x]));
+    prog.exercises=session.items.map(it=>{
+      let ex=it.exId&&old.get(it.exId);
+      if(!ex){ex={id:uid(),name:it.name,weight:'',mode:it.mode,step:it.step?String(it.step):''};it.exId=ex.id;}
+      ex.sets=String(it.sets.length);ex.reps=it.repsLabel;
+      return ex;
+    });
+    save();session.info='Programme mis à jour.';render();return;
   }
   if(a==='finish'){finishSession();render(true);return;}
   if(a==='apply'){
@@ -418,6 +715,8 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='pname'&&editing){editing.draft.name=t.value;return;}
   if(t.dataset.ex!==undefined&&editing){editing.draft.exercises[+t.dataset.ex][t.dataset.f]=t.value;return;}
+  if(t.dataset.opt==='reps'&&session){const it=session.items[+t.dataset.i];it.repsLabel=t.value;it.goal=repsMax(t.value);return;}
+  if(t.dataset.add&&session&&session.adding){session.adding[t.dataset.add]=t.value;return;}
   if(t.dataset.s!==undefined&&session){
     session.items[+t.dataset.i].sets[+t.dataset.s][t.dataset.f]=t.value;
     if(t.dataset.f==='w') updatePlateLine(+t.dataset.i);
@@ -437,6 +736,13 @@ document.addEventListener('input',e=>{
     save();refreshTools();
   }
 });
+
+document.addEventListener('toggle',e=>{
+  const d=e.target;
+  if(!d||!d.dataset||!d.dataset.key||!session) return;
+  if(d.open) session.open.add(d.dataset.key); else session.open.delete(d.dataset.key);
+  if(d.open&&d.dataset.key.charAt(0)==='t') loadExample(+d.dataset.key.slice(2));
+},true);
 
 render(true);
 if('serviceWorker' in navigator){
